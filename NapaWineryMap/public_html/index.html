@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>Napa Winery Map</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+        <style>
+            #map-canvas {
+                height: 600px;
+                width:500px;
+                color: black;
+            }
+
+            #switch_button #switch_img, #switch_button.on:hover #switch_img{
+
+                background-image:url('http://dl.dropboxusercontent.com/u/18594175/switch.gif');
+                width:30px;
+                height:35px;
+                background-size: 95%;
+                background-repeat: no-repeat;
+            }
+
+            #switch_button:hover #switch_img, #switch_button.on #switch_img{
+                background-image:url('http://dl.dropboxusercontent.com/u/18594175/switch_hover.gif');
+                background-size: 95%;
+                background-repeat: no-repeat;
+            }
+
+            #switch_button{
+                position:fixed;
+                right:60px;
+                top:55px;
+                z-index:100000;
+                font-size:14px;
+                text-transform:uppercase;
+                font-weight: bold;
+            }
+
+            #switch_button.on:hover, #switch_button{
+                color:black;
+            }
+
+            #switch_button:hover, #switch_button.on{
+                color:crimson;
+            }
+            div.marker_title{
+                font-size:13px;
+                word-wrap:normal;
+            }
+        </style>
+        <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+        <script src='https://dl.dropboxusercontent.com/u/18594175/jquery.js' type='text/javascript'></script>
+        <script src='https://dl.dropboxusercontent.com/u/18594175/yensjs.js' type='text/javascript'></script>
+        <script src='https://dl.dropboxusercontent.com/u/18594175/jquery.cookie.js' type='text/javascript'></script>
+
+    </head>
+    <body>
+        <div id="map-canvas"></div>
+        <script src="./js/map.js"></script>
+        <script>
+    var localHandlers = [];
+
+    function winery(names, displayDescription) {
+        localHandlers.push(
+                function(markers) {
+                    mapJS.focusMarker(markers, names, displayDescription, true);
+                });
+    }
+
+
+    function loadButton() {
+        var button_img = $("<div>").attr({id: "switch_img", class: "switch"});
+        var button_msg = $("<div>").attr({id: "button_msg", class: "switch"}).html("off");
+        var button = $("<div>").append(button_img).append(button_msg).attr({
+            id: "switch_button", class: "off"
+        });
+
+        button.appendTo($("body")).click(function() {
+            if (on) {
+                $('#map-canvas').animate({height: '0px', display: "none"});
+                on = false;
+                button_msg.html("on");
+                button.addClass("on");
+                $.cookie("switch", "off", {expires: 7, path: '/', domain: 'napawinetasting.blogspot.com'});
+
+            }
+            else {
+                on = true;
+                $('#map-canvas').css("display", "block").animate({height: '480px'});
+                button_msg.html("off");
+                button.removeClass("on");
+                $.cookie("switch", "on", {expires: 7, path: '/', domain: 'napawinetasting.blogspot.com'});
+            }
+        });
+
+        var status = $.cookie("switch");
+        var on = true;
+
+        if ("off" === status) {
+            $('#map-canvas').css("display", "none");
+            on = false;
+            button_msg.html("off");
+            button.removeClass("on");
+        }
+    }
+
+    function initialize() {
+        var napa = new google.maps.LatLng(38.297538, -122.286865);
+        var mapOptions = {
+            zoom: 10,
+            minZoom:9,
+            center: napa,
+            mapTypeId: google.maps.MapTypeId.TERRAIN,
+            streetViewControl: false
+        };
+        var map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+        var kml = 'https://mapsengine.google.com/map/kml?mid=zYRs4_Yo_jEY.k4uOG-f3tVuk&lid=zYRs4_Yo_jEY.kNdMVdJR1K_w&cid=mp&cv=fnZDTBQ9OYo.zh_TW.';
+
+        var handler = mapJS.loadMarkersFromKMLAsync(kml, map);
+        handler.addMarkersLoadedListener(mapJS.attachSingletonInfoWindow);
+
+        for (var i in localHandlers) {
+            handler.addMarkersLoadedListener(localHandlers[i]);
+        }
+
+        handler.addMarkersLoadedListener(function(markers) {
+            var wineryDiv = $('#wineriesDiv');
+            for (var i in markers) {
+                var marker = markers[i];
+                var checkbox = $('<input>').attr({
+                    type: 'checkbox',
+                    name: 'wineries',
+                    value: marker.getTitle(),
+                    class: 'wineryCheckbox'
+                }).appendTo(wineryDiv);
+                $('<span>').attr('class', 'wineryName').html(marker.getTitle()).appendTo(wineryDiv);
+                $('<br>').appendTo(wineryDiv);
+                checkbox.change((function() {
+                    return function() {
+                        var wineries = [];
+                        $('input[name=wineries]:checked').each(function() {
+                            if ($(this).attr('value')) {
+                                wineries.push($(this).attr('value'));
+                            }
+                        });
+
+                        mapJS.focusMarker(markers, wineries, true);
+
+                    };
+                })(marker));
+            }
+        });
+        loadButton();
+    }
+
+
+
+    google.maps.event.addDomListener(window, 'load', initialize);
+
+
+        </script>
+        <script>
+            winery(["Beringer Vineyards", "Kenzo Estate"]);
+
+        </script>
+        <form>
+            <div id="wineriesDiv">
+
+            </div>
+        </form>
+        <script>
+
+        </script>
+    </body>
+</html>
